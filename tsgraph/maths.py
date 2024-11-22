@@ -23,7 +23,7 @@ def pack_ffill(*args, state=None, columns=None):
 
 
 @node
-def df_add(df: pd.DataFrame):
+def df_add(df: pd.DataFrame) -> pd.DataFrame:
     return df.dropna().sum(axis=1)
 
 

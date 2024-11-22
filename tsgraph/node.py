@@ -144,7 +144,7 @@ class FuncNode(Node):
         self._state = self._initial_state
 
 
-def node(func):
+def node(func: Callable[..., pd.DataFrame]) -> Callable[..., FuncNode]:
     """
     A decorator for constructing function nodes. It assumes that all node inputs have either
     the same set of columns or are 1d default columns. It then assumes the output column set matches.
