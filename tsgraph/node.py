@@ -1,6 +1,6 @@
 import inspect
 from abc import ABC, abstractmethod
-from inspect import getfullargspec, Parameter
+from inspect import Parameter
 from itertools import chain
 from typing import Iterable, Callable
 
@@ -164,6 +164,7 @@ def node(func: Callable[..., pd.DataFrame]) -> Callable[..., FuncNode]:
     A decorator for constructing function nodes. It assumes that all node inputs have either
     the same set of columns or are 1d default columns. It then assumes the output column set matches.
     """
+
     def wrapped(*args, **kwargs):
         parents = FuncNode.get_parents(args, kwargs)
         columns = ONE_D_COLS
@@ -175,6 +176,7 @@ def node(func: Callable[..., pd.DataFrame]) -> Callable[..., FuncNode]:
                     raise ValueError("Different columns found in input nodes. Can't infer column type.")
 
         return FuncNode(func, *args, columns=columns, **kwargs)
+
     return wrapped
 
 
