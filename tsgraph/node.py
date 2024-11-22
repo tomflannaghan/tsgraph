@@ -27,8 +27,8 @@ class Node(ABC):
 
     def __init__(self, parents: Iterable["Node"], columns: Iterable[str] = ONE_D_COLS):
         self._parents = list(parents)
-        self.current_dt = None
         self.columns = list(columns)
+        self.current_dt = None
         self.prev_dt = None
         self.prev_result = None
 
@@ -61,6 +61,8 @@ class Node(ABC):
     def reset(self):
         """Resets the node"""
         self.current_dt = None
+        self.prev_dt = None
+        self.prev_result = None
 
     def reset_all(self, reset_outputs=False):
         for n in self._parents:
