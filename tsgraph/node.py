@@ -141,7 +141,7 @@ class FuncNode(Node):
 
     def evaluate(self, start_dt, end_dt) -> pd.DataFrame:
         if start_dt != self.current_dt:
-            self.reset_all(reset_outputs=False)
+            self.reset_all()
             return self.advance(end_dt)[start_dt:]
 
         args = [self.advance_child(v, end_dt) for v in self._args]
