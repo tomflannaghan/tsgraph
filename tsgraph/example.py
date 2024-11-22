@@ -17,7 +17,7 @@ def timeseries(values):
 a = df_node(timeseries([1, 2, 3, 4]))
 b = df_node(timeseries([None, None, 6, 7]))
 
-c = pack_ffill(a, b, state=0)
+c = pack_ffill(a, b, state=0, columns=['a', 'b'])
 d = cumsum(c)
 
 print(d.advance(pd.Timestamp('2020-01-01')))
@@ -25,3 +25,5 @@ print(d.advance(pd.Timestamp('2020-01-01')))
 d.reset_all()
 print(d.advance(pd.Timestamp('2000-01-02')))
 print(d.advance(pd.Timestamp('2000-01-04')))
+
+c.calc()

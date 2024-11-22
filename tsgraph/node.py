@@ -38,13 +38,13 @@ class Node(ABC):
         if node.prev_result is not None and node.prev_dt == self.current_dt and node.current_dt == end_dt:
             return node.prev_result
         if node.current_dt is not None and node.current_dt != self.current_dt:
-            node.reset_all(reset_outputs=False)
+            node.reset_all()
             node.advance(self.current_dt)  # Advance to our current time.
         return node.advance(end_dt)
 
     def advance(self, end_dt) -> pd.DataFrame:
         if end_dt == self.current_dt:
-            return pd.DataFrame([], index=DatetimeIndex(), columns=self.columns)
+            return pd.DataFrame([], index=DatetimeIndex([]), columns=self.columns)
         result = self.evaluate(self.current_dt, end_dt)
         result = as_valid_result(result)
         if list(result.columns) != self.columns:
@@ -64,13 +64,26 @@ class Node(ABC):
         self.prev_dt = None
         self.prev_result = None
 
-    def reset_all(self, reset_outputs=False):
-        for n in self._parents:
-            n.reset_all(reset_outputs=reset_outputs)
+    def hard_reset(self):
         self.reset()
+
+    def reset_all(self):
+        for n in self._parents:
+            n.reset_all()
+        self.reset()
+
+    def hard_reset_all(self):
+        for n in self._parents:
+            n.hard_reset_all()
+        self.hard_reset()
 
     def graph_start_dt(self) -> pd.Timestamp:
         return min(n.graph_start_dt() for n in self._parents)
+
+    def calc(self):
+        """Convinient way to evaluate up to the present day"""
+        self.reset()
+        return self.advance(pd.Timestamp.now())
 
 
 class OutputNode(Node):
@@ -89,13 +102,15 @@ class OutputNode(Node):
         slice_start = start_dt + EPSILON if start_dt is not None else self.graph_start_dt()
         return self.data[slice_start:end_dt].as_df()
 
-    def reset(self):
-        super().reset()
+    def hard_reset(self):
+        super().hard_reset()
         self.data = Curve(columns=self.columns)
 
-    def reset_all(self, reset_outputs=False):
-        if reset_outputs:
-            super().reset_all(reset_outputs)
+    def reset(self):
+        pass
+
+    def reset_all(self):
+        pass
 
 
 class FuncNode(Node):
