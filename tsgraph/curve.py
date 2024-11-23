@@ -1,6 +1,11 @@
 from typing import List, Iterable
 
 import pandas as pd
+from pandas import DatetimeIndex
+
+
+def empty_df(columns):
+    return pd.DataFrame([], index=DatetimeIndex([]), columns=columns)
 
 
 class Curve:
@@ -31,7 +36,10 @@ class Curve:
             self.append(df)
 
     def as_df(self) -> pd.DataFrame:
-        return pd.concat(self._dfs)
+        if self._dfs:
+            return pd.concat(self._dfs)
+        else:
+            return pd.DataFrame([], index=DatetimeIndex([]), columns=self.columns)
 
     def get_end_dt(self) -> pd.Timestamp | None:
         if len(self._dfs) == 0:

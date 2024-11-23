@@ -97,7 +97,7 @@ class OutputNode(Node):
         return f'output_node({id(self)})'
 
     def evaluate(self, start_dt, end_dt) -> pd.DataFrame:
-        if end_dt > self.current_dt:
+        if self.current_dt is None or end_dt > self.current_dt:
             result = self.advance_child(self._input_node, end_dt)
             self.data.append(result)
         if start_dt is None:
@@ -114,6 +114,10 @@ class OutputNode(Node):
 
     def reset_all(self):
         pass
+
+
+def output_node(node) -> OutputNode:
+    return OutputNode(node)
 
 
 class FuncNode(Node):
