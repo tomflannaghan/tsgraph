@@ -37,8 +37,10 @@ def align_sum(node: Node, index_node: Node, state=None):
     """
     Returns the dataframe node aligned to the index of index_node, preserving the sum of the data.
     State can be used to give initial values to be used when index_node ticks before node.
+    At some point might be nice to implement this directly to avoid any loss of precision.
     """
-    from tsgraph.nodes.maths import cumsum, diff
+    from tsgraph.nodes.maths import cumsum
+    from tsgraph.nodes.utils import diff
     return diff(align_ffill(cumsum(node), index_node, state=state), 1, state=0)
 
 
