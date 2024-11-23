@@ -1,6 +1,6 @@
 import graphviz
 
-from tsgraph.node import Node
+from tsgraph.nodes.core import Node
 
 
 def node_graph(node: Node) -> graphviz.Digraph:

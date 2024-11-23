@@ -5,6 +5,7 @@ from itertools import chain
 from typing import Iterable, Callable
 
 import pandas as pd
+from anyio.abc import value
 
 from tsgraph.curve import Curve, empty_df
 
@@ -20,6 +21,15 @@ def as_valid_result(value):
         return pd.DataFrame({ONE_D_COL: value})
     else:
         raise ValueError(f"Results must be dataframes, got {type(value)}")
+
+
+def to_series(value):
+    if isinstance(value, pd.DataFrame):
+        if value.shape[-1] != 1:
+            raise ValueError("Can't convert multidimensional df to a series")
+        return value.iloc[:, 0]
+    else:
+        return value
 
 
 class Node(ABC):
@@ -172,20 +182,21 @@ class FuncNode(Node):
 
 def node(func: Callable[..., pd.DataFrame]) -> Callable[..., FuncNode]:
     """
-    A decorator for constructing function nodes. It assumes that all node inputs have either
-    the same set of columns or are 1d default columns. It then assumes the output column set matches that.
-    I.e. you can't use this decorator in cases where the input columns differ from the output columns.
+    A decorator for constructing function nodes. It adds a columns argument. If specified, defines the
+    output columns. Otherwise, we require that all node inputs have either the same set of columns
+    or are 1d default columns. It then assumes the output column set matches that.
     """
 
-    def wrapped(*args, **kwargs):
+    def wrapped(*args, columns=None, **kwargs):
         parents = FuncNode.get_parents(args, kwargs)
-        columns = ONE_D_COLS
-        for n in parents:
-            if n.columns != ONE_D_COLS:
-                if columns == ONE_D_COLS:
-                    columns = n.columns
-                elif columns != n.columns:
-                    raise ValueError("Different columns found in input nodes. Can't infer column type.")
+        if columns is None:
+            columns = ONE_D_COLS
+            for n in parents:
+                if n.columns != ONE_D_COLS:
+                    if columns == ONE_D_COLS:
+                        columns = n.columns
+                    elif columns != n.columns:
+                        raise ValueError("Different columns found in input nodes. Can't infer column type.")
 
         return FuncNode(func, *args, columns=columns, **kwargs)
 

@@ -1,7 +1,7 @@
 import pandas as pd
 
 from tests.utils import timeseries
-from tsgraph.node import node, df_node
+from tsgraph.nodes.core import node, df_node
 
 
 @node

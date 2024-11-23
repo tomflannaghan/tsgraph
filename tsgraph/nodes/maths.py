@@ -3,7 +3,7 @@ import pandas as pd
 from numba import jit
 from pandas import DatetimeIndex
 
-from tsgraph.node import node, Node, scalar_node
+from tsgraph.nodes.core import node, Node, scalar_node
 from tsgraph.nodes.align import aligned_node
 
 
@@ -67,21 +67,3 @@ def ewma(df: pd.DataFrame, span: float, state=None):
         this_result, state[i] = _ewma_impl(df.values[:, i], state[i], 2 / (1 + span))
         result.append(this_result)
     return pd.DataFrame(np.vstack(result).T, index=df.index, columns=df.columns), state
-
-
-@node
-def lag(df: pd.DataFrame, n: int, state=None):
-    """Lag function, lags by a number of data points. State holds any data not yet emitted as a dataframe."""
-    if df.empty:
-        return df, state
-    if state is None:
-        state = df.iloc[:0]
-    full_vals = pd.concat([state, df], ignore_index=True)
-    to_output = full_vals.iloc[:-n]
-    state = full_vals.iloc[-n:]
-    index = df.index[-len(to_output):] if len(to_output) else DatetimeIndex([])
-    return to_output.set_index(index), state
-
-
-def diff(df: Node, n: int = 1, state=None):
-    return add(df, mul(lag(df, n, state=state), -1))

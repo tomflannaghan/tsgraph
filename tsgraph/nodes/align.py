@@ -1,6 +1,8 @@
+from typing import Dict
+
 import pandas as pd
 
-from tsgraph.node import FuncNode, node, Node, scalar_node
+from tsgraph.nodes.core import FuncNode, node, Node, scalar_node, to_series
 
 
 @scalar_node
@@ -89,23 +91,24 @@ def aligned_node(func):
     return wrapped
 
 
-def pack(*args, columns=None, aligner='left', how='ffill', state=None):
-    columns = sum((df.columns for df in args), []) if columns is None else columns
+def pack(col_to_value: Dict, aligner='left', how='ffill', state=None):
+    """
+    Forms a multicolumn node with the given columns. Can be nodes or values. All inputs must be 1d.
+    """
+    columns = list(col_to_value)
 
     @aligned_node
-    def pack(*dfs):
-        df = pd.concat(dfs, axis=1, ignore_index=True).dropna()
-        df.columns = columns
-        return df
+    def pack(*values):
+        return pd.DataFrame({col: to_series(v) for col, v in zip(columns, values)}).dropna()
 
-    return pack(*args, aligner=aligner, how=how, state=state)
+    return pack(*col_to_value.values(), aligner=aligner, how=how, state=state, columns=columns)
 
 
-@node
+@scalar_node
 def get_col(df, key):
     return df.loc[:, key]
 
 
-@node
+@scalar_node
 def get_col_index(df, index):
     return df.iloc[:, index]
