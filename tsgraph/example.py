@@ -1,7 +1,8 @@
 import pandas as pd
 from pandas import DatetimeIndex
 
-from tsgraph.maths import pack_ffill, cumsum
+from tsgraph.nodes.maths import cumsum
+from tsgraph.nodes.pack import pack_ffill
 from tsgraph.node import df_node
 
 
