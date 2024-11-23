@@ -93,6 +93,9 @@ class OutputNode(Node):
         self.data = Curve(columns=input_node.columns)
         self._input_node = input_node
 
+    def __repr__(self):
+        return f'output_node({id(self)})'
+
     def evaluate(self, start_dt, end_dt) -> pd.DataFrame:
         if end_dt > self.current_dt:
             result = self.advance_child(self._input_node, end_dt)
@@ -131,6 +134,9 @@ class FuncNode(Node):
         else:
             self._initial_state = None
         self._state = self._initial_state
+
+    def __repr__(self):
+        return f'{self._func.__name__}({id(self)})'
 
     @staticmethod
     def get_parents(args, kwargs):
@@ -187,6 +193,9 @@ class DataFrameNode(Node):
         if df.empty:
             raise ValueError("Cannot use empty dataframe for a node")
         self._df = df
+
+    def __repr__(self):
+        return f'df_node({id(self)})'
 
     def evaluate(self, start_dt, end_dt) -> pd.DataFrame:
         slice_start = start_dt + EPSILON if start_dt is not None else self.graph_start_dt()

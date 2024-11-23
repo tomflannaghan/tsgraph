@@ -1,7 +1,7 @@
 import pandas as pd
 from pandas import DatetimeIndex
 
-from tsgraph.nodes.maths import cumsum
+from tsgraph.nodes.maths import cumsum, add
 from tsgraph.nodes.pack import pack_ffill
 from tsgraph.node import df_node
 
@@ -20,6 +20,7 @@ b = df_node(timeseries([None, None, 6, 7]))
 
 c = pack_ffill(a, b, state=0, columns=['a', 'b'])
 d = cumsum(c)
+e = add(d, -4)
 
 print(d.advance(pd.Timestamp('2020-01-01')))
 
