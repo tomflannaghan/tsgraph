@@ -1,3 +1,4 @@
+from functools import wraps
 from typing import Dict
 
 import pandas as pd
@@ -63,6 +64,7 @@ def aligned_node(func):
     """
     A decorator that aligns all the arguments to a function. Requires all nodes to be positional arguments, not kwargs.
     """
+    @wraps(func)
     def wrapped(*args, aligner='left', how='ffill', state=None, **kwargs):
         nodes = [n for n in args if isinstance(n, Node)]
         hows = how if isinstance(how, list) else [how] * len(nodes)

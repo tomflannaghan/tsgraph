@@ -1,5 +1,6 @@
 import inspect
 from abc import ABC, abstractmethod
+from functools import wraps
 from inspect import Parameter
 from itertools import chain
 from typing import Iterable, Callable
@@ -186,6 +187,7 @@ def node(func: Callable[..., pd.DataFrame]) -> Callable[..., FuncNode]:
     or are 1d default columns. It then assumes the output column set matches that.
     """
 
+    @wraps(func)
     def wrapped(*args, columns=None, **kwargs):
         parents = FuncNode.get_parents(args, kwargs)
         if columns is None:
@@ -208,6 +210,7 @@ def scalar_node(func: Callable[..., pd.DataFrame]) -> Callable[..., FuncNode]:
     of the input.
     """
 
+    @wraps(func)
     def wrapped(*args, **kwargs):
         return FuncNode(func, *args, columns=ONE_D_COLS, **kwargs)
 
