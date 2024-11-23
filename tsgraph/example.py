@@ -2,7 +2,7 @@ import pandas as pd
 from pandas import DatetimeIndex
 
 from tsgraph.nodes.maths import cumsum, add, ewma, df_add
-from tsgraph.nodes.pack import pack_ffill
+from tsgraph.nodes.align import pack_ffill
 from tsgraph.node import df_node
 
 

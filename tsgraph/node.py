@@ -5,9 +5,8 @@ from itertools import chain
 from typing import Iterable, Callable
 
 import pandas as pd
-from pandas import DatetimeIndex
 
-from tsgraph.curve import Curve
+from tsgraph.curve import Curve, empty_df
 
 ONE_D_COL = 0
 ONE_D_COLS = (ONE_D_COL,)
@@ -44,7 +43,7 @@ class Node(ABC):
 
     def advance(self, end_dt) -> pd.DataFrame:
         if end_dt == self.current_dt:
-            return pd.DataFrame([], index=DatetimeIndex([]), columns=self.columns)
+            return empty_df(columns=self.columns)
         result = self.evaluate(self.current_dt, end_dt)
         result = as_valid_result(result)
         if list(result.columns) != self.columns:

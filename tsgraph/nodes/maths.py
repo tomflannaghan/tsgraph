@@ -4,7 +4,7 @@ from more_itertools.recipes import partition
 from numba import jit
 
 from tsgraph.node import node, Node, scalar_node
-from tsgraph.nodes.pack import pack_ffill
+from tsgraph.nodes.align import pack_ffill
 
 
 @scalar_node
@@ -59,8 +59,8 @@ def _ewma_impl(data: np.array, state, alpha):
 def ewma(df: pd.DataFrame, span: float, state=None):
     if state is None:
         state = [(0, 0, 0, 1)] * df.shape[-1]
-    result = {}
+    result = []
     for i, col in enumerate(df.columns):
-        result[col], state[i] = _ewma_impl(df.values[:,i], state[i], 2 / (1 + span))
-
-    return pd.DataFrame(result, index=df.index), state
+        this_result, state[i] = _ewma_impl(df.values[:, i], state[i], 2 / (1 + span))
+        result.append(this_result)
+    return pd.DataFrame(np.vstack(result).T, index=df.index, columns=df.columns), state

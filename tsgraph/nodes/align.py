@@ -1,6 +1,6 @@
 import pandas as pd
 
-from tsgraph.node import FuncNode
+from tsgraph.node import FuncNode, node
 
 
 def pack_ffill(*args, state=None, columns=None):
@@ -20,3 +20,13 @@ def pack_ffill(*args, state=None, columns=None):
         return df, state
 
     return FuncNode(pack_ffill, *args, columns=cols)
+
+
+@node
+def get_col(df, key):
+    return df.loc[:, key]
+
+
+@node
+def get_col_index(df, index):
+    return df.iloc[:, index]
