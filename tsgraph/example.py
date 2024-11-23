@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from matplotlib import pyplot
 from pyg_base import dictable
 
 from tsgraph.nodes.align import pack
@@ -8,8 +9,8 @@ from tsgraph.nodes.utils import stitch, diff
 
 
 def fake_price_series(contract_month):
-    prices = (1 + np.random.normal(scale=0.01, size=250)).cumprod()
-    dates = pd.bdate_range(contract_month - pd.offsets.BDay(250), contract_month, freq='B')
+    prices = (1 + np.random.normal(scale=0.01, size=1000)).cumprod()
+    dates = pd.bdate_range(contract_month - pd.offsets.BDay(1000), contract_month, freq='B')
     return pd.Series(prices, index=dates[-len(prices):])
 
 
@@ -26,4 +27,11 @@ contract_data = contract_data(price_data=lambda price, contract_month: pack({
 market_data = contract_data.listby('market')
 market_data = market_data(price_data=lambda price_data, roll_date: stitch(price_data, roll_date))
 
-market_data[0].price_data.calc()
+df = market_data[0].price_data.calc()
+
+backadjust = df['price_delta'].cumsum()
+backadjust *= df['price_unadj'].iloc[-1] / backadjust.iloc[-1]
+pyplot.plot(df['price_unadj'], label='price_unadj')
+pyplot.plot(backadjust, label='backadjust')
+pyplot.legend()
+pyplot.show()
