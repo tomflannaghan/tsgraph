@@ -202,7 +202,6 @@ def scalar_node(func: Callable[..., pd.DataFrame]) -> Callable[..., FuncNode]:
     return wrapped
 
 
-
 class DataFrameNode(Node):
 
     def __init__(self, df: pd.DataFrame):

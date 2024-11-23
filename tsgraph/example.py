@@ -1,36 +1,17 @@
+import numpy as np
 import pandas as pd
-from pandas import DatetimeIndex
+from pyg_base import dictable
 
-from tsgraph.nodes.maths import cumsum, add, ewma, df_add
-from tsgraph.nodes.align import pack_ffill
 from tsgraph.node import df_node
 
-
-def default_index(n):
-    t = pd.Timestamp('2000-01-01')
-    return DatetimeIndex([t + pd.offsets.Day(i) for i in range(n)])
-
-
-def timeseries(values):
-    return pd.Series(values, default_index(len(values))).dropna()
+def fake_price_series(contract_month):
+    prices = (1 + np.random.normal(scale=0.01, size=250)).cumprod()
+    dates = pd.bdate_range(contract_month - pd.offsets.BDay(250), contract_month, freq='B')
+    return pd.Series(prices, index=dates[-len(prices):])
 
 
-a = df_node(timeseries([1, 2, 3, 4]))
-b = df_node(timeseries([None, None, 6, 7]))
-
-c = pack_ffill(a, b, state=0, columns=['a', 'b'])
-d = cumsum(c)
-e = add(d, -4)
-
-print(d.advance(pd.Timestamp('2020-01-01')))
-
-d.reset_all()
-print(d.advance(pd.Timestamp('2000-01-02')))
-print(d.advance(pd.Timestamp('2000-01-04')))
-
-c.calc()
-
-f = ewma(df_add(e), 3)
-print(f.calc())
-
-print(df_add(e).calc().ewm(span=3).mean())
+markets = dictable(markets=['WTI', 'ES', 'NG', 'DAX'])
+contract_data = dictable(contract_month=list(pd.date_range(pd.Timestamp('2000-01-01'), pd.Timestamp('2020-01-01'), freq='MS')))
+contract_data = contract_data.join(markets)
+contract_data = contract_data(price=lambda contract_month: df_node(fake_price_series(contract_month)))
+contract_data = contract_data(roll_date=lambda contract_month: contract_month - pd.offsets.BDay(10))

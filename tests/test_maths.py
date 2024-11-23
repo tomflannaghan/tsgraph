@@ -2,7 +2,7 @@ import pandas as pd
 
 from tests.utils import timeseries, calc_check_consistency
 from tsgraph.node import df_node, as_valid_result
-from tsgraph.nodes.maths import ewma, cumsum, add
+from tsgraph.nodes.maths import ewma, cumsum, add, lag, diff
 
 
 def test_ewma():
@@ -41,3 +41,23 @@ def test_add():
     node.calc().equals(2 * sample_data + 6)
     node = add(data_node, 4, 2, df_node(sample_data))
     node.calc().equals(2 * sample_data + 6)
+
+
+def test_lag():
+    sample_data = pd.DataFrame({'a': timeseries([1, 2, 3, 4, 5, 6, 7]), 'b': timeseries([3, 3, 3, 3, 3, 3, 3]),
+                                'c': timeseries([0, 1, 0, 1, 0, 0, 1])})
+    for l in range(1, 8):
+        node = lag(df_node(sample_data), n=l)
+        result = calc_check_consistency(node)
+        expected = sample_data.shift(l).dropna()
+        pd.testing.assert_frame_equal(result, expected, check_dtype=False)
+
+
+def test_diff():
+    sample_data = pd.DataFrame({'a': timeseries([1, 2, 3, 4, 5, 6, 7]), 'b': timeseries([3, 3, 3, 3, 3, 3, 3]),
+                                'c': timeseries([0, 1, 0, 1, 0, 0, 1])})
+    for l in range(1, 8):
+        node = diff(df_node(sample_data), n=l)
+        result = calc_check_consistency(node)
+        expected = sample_data.diff(l).dropna()
+        pd.testing.assert_frame_equal(result, expected, check_dtype=False)

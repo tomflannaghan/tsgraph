@@ -1,33 +1,35 @@
 import numpy as np
 import pandas as pd
-from more_itertools.recipes import partition
 from numba import jit
+from pandas import DatetimeIndex
 
 from tsgraph.node import node, Node, scalar_node
-from tsgraph.nodes.align import pack_ffill
 
 
 @scalar_node
-def df_add(df: pd.DataFrame) -> pd.DataFrame:
+def df_sum(df: pd.DataFrame) -> pd.DataFrame:
     return df.dropna().sum(axis=1)
 
 
 @node
-def scalar_add(df: pd.DataFrame, *scalars) -> pd.DataFrame:
-    return df + sum(scalars)
+def add(*args) -> pd.DataFrame:
+    result = args[0]
+    for v in args[1:]:
+        result += v
+    return result.dropna()
 
 
-def add(*args):
-    scalars, nodes = partition(lambda v: isinstance(v, Node), args)
-    nodes = list(nodes)
-    scalars = list(scalars)
-    if len(nodes) > 1:
-        result = df_add(pack_ffill(*nodes))
-    else:
-        result = nodes[0]
-    if scalars:
-        result = scalar_add(result, *scalars)
-    return result
+@scalar_node
+def df_prod(df: pd.DataFrame) -> pd.DataFrame:
+    return df.dropna().prod(axis=1)
+
+
+@node
+def mul(*args) -> pd.DataFrame:
+    result = args[0]
+    for v in args[1:]:
+        result *= v
+    return result.dropna()
 
 
 @node
@@ -64,3 +66,21 @@ def ewma(df: pd.DataFrame, span: float, state=None):
         this_result, state[i] = _ewma_impl(df.values[:, i], state[i], 2 / (1 + span))
         result.append(this_result)
     return pd.DataFrame(np.vstack(result).T, index=df.index, columns=df.columns), state
+
+
+@node
+def lag(df: pd.DataFrame, n: int, state=None):
+    """Lag function, lags by a number of data points. State holds any data not yet emitted as a dataframe."""
+    if df.empty:
+        return df, state
+    if state is None:
+        state = df.iloc[:0]
+    full_vals = pd.concat([state, df], ignore_index=True)
+    to_output = full_vals.iloc[:-n]
+    state = full_vals.iloc[-n:]
+    index = df.index[-len(to_output):] if len(to_output) else DatetimeIndex([])
+    return to_output.set_index(index), state
+
+
+def diff(df: Node, n: int, state=None):
+    return add(df, mul(lag(df, n, state=None), -1))
