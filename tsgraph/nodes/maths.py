@@ -4,7 +4,7 @@ from numba import jit
 from pandas import DatetimeIndex
 
 from tsgraph.node import node, Node, scalar_node
-from tsgraph.nodes.align import aligner_node
+from tsgraph.nodes.align import aligned_node
 
 
 @scalar_node
@@ -12,7 +12,7 @@ def df_sum(df: pd.DataFrame) -> pd.DataFrame:
     return df.dropna().sum(axis=1)
 
 
-@aligner_node
+@aligned_node
 def add(*args) -> pd.DataFrame:
     result = args[0].copy()
     for v in args[1:]:
@@ -25,7 +25,7 @@ def df_prod(df: pd.DataFrame) -> pd.DataFrame:
     return df.dropna().prod(axis=1)
 
 
-@aligner_node
+@aligned_node
 def mul(*args) -> pd.DataFrame:
     result = args[0].copy()
     for v in args[1:]:

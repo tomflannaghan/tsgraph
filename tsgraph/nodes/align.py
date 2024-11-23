@@ -55,7 +55,7 @@ def align(node: Node, index_node: Node, how='ffill', state=None):
         raise ValueError(f"Invalid how parameter {how}")
 
 
-def aligner_node(func):
+def aligned_node(func):
     """
     A decorator that aligns all the arguments to a function. Requires all nodes to be positional arguments, not kwargs.
     """
@@ -92,7 +92,7 @@ def aligner_node(func):
 def pack(*args, columns=None, aligner='left', how='ffill', state=None):
     columns = sum((df.columns for df in args), []) if columns is None else columns
 
-    @aligner_node
+    @aligned_node
     def pack(*dfs):
         df = pd.concat(dfs, axis=1, ignore_index=True).dropna()
         df.columns = columns
