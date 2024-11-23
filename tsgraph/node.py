@@ -61,7 +61,6 @@ class Node(ABC):
 
     def reset(self):
         """Resets the node"""
-        print("reset", self)
         self.current_dt = None
         self.prev_dt = None
         self.prev_result = None
