@@ -59,11 +59,14 @@ def aligner_node(func):
     """
     A decorator that aligns all the arguments to a function. Requires all nodes to be positional arguments, not kwargs.
     """
-    def wrapped(*args, aligner='left', how='ffill', **kwargs):
+    def wrapped(*args, aligner='left', how='ffill', state=None, **kwargs):
         nodes = [n for n in args if isinstance(n, Node)]
         hows = how if isinstance(how, list) else [how] * len(nodes)
+        states = state if isinstance(state, list) else [state] * len(nodes)
         if len(hows) != len(nodes):
             raise ValueError("If multiple hows given, must be one per node")
+        if len(states) != len(nodes):
+            raise ValueError("If multiple states given, must be one per node")
         if aligner == 'left':
             index_node = nodes[0]
         elif aligner == 'union':
@@ -71,7 +74,7 @@ def aligner_node(func):
         else:
             raise ValueError(f"Invalid aligner {aligner}")
 
-        aligned_nodes = [align(n, index_node) for n in nodes]
+        aligned_nodes = [align(n, index_node, how=h, state=s) for n, h, s in zip(nodes, hows, states)]
         aligned_args = []
         node_index = 0
         for v in args:

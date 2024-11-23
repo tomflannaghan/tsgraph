@@ -83,5 +83,5 @@ def lag(df: pd.DataFrame, n: int, state=None):
     return to_output.set_index(index), state
 
 
-def diff(df: Node, n: int, state=None):
+def diff(df: Node, n: int = 1, state=None):
     return add(df, mul(lag(df, n, state=state), -1))
