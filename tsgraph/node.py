@@ -61,6 +61,7 @@ class Node(ABC):
 
     def reset(self):
         """Resets the node"""
+        print("reset", self)
         self.current_dt = None
         self.prev_dt = None
         self.prev_result = None
@@ -83,7 +84,7 @@ class Node(ABC):
 
     def calc(self):
         """Convinient way to evaluate up to the present day"""
-        self.reset()
+        self.reset_all()
         return self.advance(pd.Timestamp.now())
 
 
@@ -173,7 +174,8 @@ class FuncNode(Node):
 def node(func: Callable[..., pd.DataFrame]) -> Callable[..., FuncNode]:
     """
     A decorator for constructing function nodes. It assumes that all node inputs have either
-    the same set of columns or are 1d default columns. It then assumes the output column set matches.
+    the same set of columns or are 1d default columns. It then assumes the output column set matches that.
+    I.e. you can't use this decorator in cases where the input columns differ from the output columns.
     """
 
     def wrapped(*args, **kwargs):
@@ -193,7 +195,8 @@ def node(func: Callable[..., pd.DataFrame]) -> Callable[..., FuncNode]:
 
 def scalar_node(func: Callable[..., pd.DataFrame]) -> Callable[..., FuncNode]:
     """
-    A decorator for constructing function nodes that return 1 dimensional results.
+    A decorator for constructing function nodes that return 1 dimensional results irrespective of the columns
+    of the input.
     """
 
     def wrapped(*args, **kwargs):
