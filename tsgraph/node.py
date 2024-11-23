@@ -42,6 +42,8 @@ class Node(ABC):
         return node.advance(end_dt)
 
     def advance(self, end_dt) -> pd.DataFrame:
+        if self.current_dt is not None and end_dt < self.current_dt:
+            raise ValueError("Cannot advance to a time in the past")
         if end_dt == self.current_dt:
             return empty_df(columns=self.columns)
         result = self.evaluate(self.current_dt, end_dt)

@@ -18,7 +18,7 @@ def scalar_add(df: pd.DataFrame, *scalars) -> pd.DataFrame:
 
 
 def add(*args):
-    nodes, scalars = partition(lambda v: isinstance(v, Node), args)
+    scalars, nodes = partition(lambda v: isinstance(v, Node), args)
     nodes = list(nodes)
     scalars = list(scalars)
     if len(nodes) > 1:

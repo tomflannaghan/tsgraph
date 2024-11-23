@@ -2,7 +2,7 @@ import pandas as pd
 
 from tests.utils import timeseries, calc_check_consistency
 from tsgraph.node import df_node, as_valid_result
-from tsgraph.nodes.maths import ewma, cumsum
+from tsgraph.nodes.maths import ewma, cumsum, add
 
 
 def test_ewma():
@@ -30,4 +30,14 @@ def test_cumsum():
     pd.testing.assert_frame_equal(result, expected)
 
 
-
+def test_add():
+    sample_data = as_valid_result(timeseries([1, 2, 3]))
+    data_node = df_node(sample_data)
+    node = add(data_node, 3)
+    node.calc().equals(sample_data + 3)
+    node = add(data_node, 4, 2)
+    node.calc().equals(sample_data + 6)
+    node = add(data_node, 4, 2, data_node)
+    node.calc().equals(2 * sample_data + 6)
+    node = add(data_node, 4, 2, df_node(sample_data))
+    node.calc().equals(2 * sample_data + 6)
