@@ -5,7 +5,6 @@ from itertools import chain
 from typing import Iterable, Callable
 
 import pandas as pd
-from anyio.abc import value
 
 from tsgraph.curve import Curve, empty_df
 
