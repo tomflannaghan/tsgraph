@@ -1,7 +1,7 @@
 import pandas as pd
 from pandas import DatetimeIndex
 
-from tsgraph.nodes.maths import cumsum, add
+from tsgraph.nodes.maths import cumsum, add, ewma, df_add
 from tsgraph.nodes.pack import pack_ffill
 from tsgraph.node import df_node
 
@@ -29,3 +29,8 @@ print(d.advance(pd.Timestamp('2000-01-02')))
 print(d.advance(pd.Timestamp('2000-01-04')))
 
 c.calc()
+
+f = ewma(df_add(e), 3)
+print(f.calc())
+
+print(df_add(e).calc().ewm(span=3).mean())

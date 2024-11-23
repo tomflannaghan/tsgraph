@@ -1,6 +1,6 @@
 import pandas as pd
 
-from tsgraph.node import FuncNode, Node
+from tsgraph.node import FuncNode
 
 
 def pack_ffill(*args, state=None, columns=None):

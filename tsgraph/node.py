@@ -48,7 +48,7 @@ class Node(ABC):
         result = self.evaluate(self.current_dt, end_dt)
         result = as_valid_result(result)
         if list(result.columns) != self.columns:
-            raise ValueError("Incorrect columns returned")
+            raise ValueError(f"Incorrect columns returned: {list(result.columns)} != {self.columns}")
         self.prev_dt = self.current_dt
         self.current_dt = end_dt
         self.prev_result = result
@@ -118,7 +118,7 @@ class OutputNode(Node):
 
 class FuncNode(Node):
 
-    def __init__(self, func: Callable, *args, columns: Iterable[str] = ONE_D_COLS, **kwargs):
+    def __init__(self, func: Callable, *args, columns: Iterable = ONE_D_COLS, **kwargs):
         super().__init__(parents=self.get_parents(args, kwargs), columns=columns)
         self._func = func
         self._args = args
@@ -184,6 +184,18 @@ def node(func: Callable[..., pd.DataFrame]) -> Callable[..., FuncNode]:
         return FuncNode(func, *args, columns=columns, **kwargs)
 
     return wrapped
+
+
+def scalar_node(func: Callable[..., pd.DataFrame]) -> Callable[..., FuncNode]:
+    """
+    A decorator for constructing function nodes that return 1 dimensional results.
+    """
+
+    def wrapped(*args, **kwargs):
+        return FuncNode(func, *args, columns=ONE_D_COLS, **kwargs)
+
+    return wrapped
+
 
 
 class DataFrameNode(Node):
