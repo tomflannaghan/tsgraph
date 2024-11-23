@@ -1,7 +1,7 @@
 import pandas as pd
 
 from tsgraph.node import FuncNode, node, Node, scalar_node
-from tsgraph.nodes.maths import cumsum, diff
+
 
 @scalar_node
 def make_index_union(*nodes):
@@ -36,7 +36,7 @@ def align_sum(node: Node, index_node: Node, state=None):
     Returns the dataframe node aligned to the index of index_node, preserving the sum of the data.
     State can be used to give initial values to be used when index_node ticks before node.
     """
-
+    from tsgraph.nodes.maths import cumsum, diff
     return diff(align_ffill(cumsum(node), index_node, state=state), 1, state=0)
 
 
@@ -79,9 +79,9 @@ def aligner_node(func):
                 aligned_args.append(aligned_nodes[node_index])
                 node_index += 1
             else:
-                aligned_nodes.append(v)
+                aligned_args.append(v)
 
-        return FuncNode(func, *aligned_args, **kwargs)
+        return node(func)(*aligned_args, **kwargs)
 
     return wrapped
 

@@ -4,6 +4,7 @@ from numba import jit
 from pandas import DatetimeIndex
 
 from tsgraph.node import node, Node, scalar_node
+from tsgraph.nodes.align import aligner_node
 
 
 @scalar_node
@@ -11,9 +12,9 @@ def df_sum(df: pd.DataFrame) -> pd.DataFrame:
     return df.dropna().sum(axis=1)
 
 
-@node
+@aligner_node
 def add(*args) -> pd.DataFrame:
-    result = args[0]
+    result = args[0].copy()
     for v in args[1:]:
         result += v
     return result.dropna()
@@ -24,9 +25,9 @@ def df_prod(df: pd.DataFrame) -> pd.DataFrame:
     return df.dropna().prod(axis=1)
 
 
-@node
+@aligner_node
 def mul(*args) -> pd.DataFrame:
-    result = args[0]
+    result = args[0].copy()
     for v in args[1:]:
         result *= v
     return result.dropna()
@@ -83,4 +84,4 @@ def lag(df: pd.DataFrame, n: int, state=None):
 
 
 def diff(df: Node, n: int, state=None):
-    return add(df, mul(lag(df, n, state=None), -1))
+    return add(df, mul(lag(df, n, state=state), -1))

@@ -34,13 +34,13 @@ def test_add():
     sample_data = as_valid_result(timeseries([1, 2, 3]))
     data_node = df_node(sample_data)
     node = add(data_node, 3)
-    node.calc().equals(sample_data + 3)
+    pd.testing.assert_frame_equal(node.calc(), sample_data + 3)
     node = add(data_node, 4, 2)
-    node.calc().equals(sample_data + 6)
+    pd.testing.assert_frame_equal(node.calc(), sample_data + 6)
     node = add(data_node, 4, 2, data_node)
-    node.calc().equals(2 * sample_data + 6)
+    pd.testing.assert_frame_equal(node.calc(), 2 * sample_data + 6)
     node = add(data_node, 4, 2, df_node(sample_data))
-    node.calc().equals(2 * sample_data + 6)
+    pd.testing.assert_frame_equal(node.calc(), 2 * sample_data + 6)
 
 
 def test_lag():
