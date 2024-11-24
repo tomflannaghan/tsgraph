@@ -45,10 +45,6 @@ def align_sum(node: Node, index_node: Node, state=None):
 
 
 def align(node: Node, index_node: Node, how='ffill', state=None):
-    """
-    Left in this case refers to taking the index. It's confusingly named - makes more sense when used
-    in aligner_node
-    """
     if node == index_node:
         return node
     if how == 'ffill':
@@ -92,17 +88,16 @@ class AlignedNodeDecorator(HomogeneousNodeDecorator):
 aligned_node = AlignedNodeDecorator
 
 
+@aligned_node
+def _pack(values, columns):
+    return pd.DataFrame({col: to_series(v) for col, v in zip(columns, values)}).dropna()
+
+
 def pack(col_to_value: Dict, aligner='left', how='ffill', state=None):
     """
     Forms a multicolumn node with the given columns. Can be nodes or values. All inputs must be 1d.
     """
-    columns = list(col_to_value)
-
-    @aligned_node
-    def pack(*values):
-        return pd.DataFrame({col: to_series(v) for col, v in zip(columns, values)}).dropna()
-
-    return pack(*col_to_value.values(), aligner=aligner, how=how, state=state, columns=columns)
+    return _pack(values=col_to_value.values(), aligner=aligner, how=how, state=state, columns=list(col_to_value))
 
 
 @scalar_node
