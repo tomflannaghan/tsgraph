@@ -2,7 +2,8 @@ import pandas as pd
 
 from tests.utils import timeseries, calc_check_consistency
 from tsgraph.nodes.core import df_node, as_valid_result
-from tsgraph.nodes.maths import ewma, cumsum, add, lag, diff
+from tsgraph.nodes.maths import ewma, cumsum, add
+from tsgraph.nodes.utils import lag, diff
 
 
 def test_ewma():
