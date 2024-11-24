@@ -33,6 +33,20 @@ def to_series(value):
         return value
 
 
+def get_slice(start_dt, end_dt):
+    slice_start = start_dt + EPSILON if start_dt is not None else None
+    return slice(slice_start, end_dt)
+
+
+def get_data_for_node(node, start_dt, end_dt, working_data, type_error=True):
+    if isinstance(node, Node):
+        return working_data[node][get_slice(start_dt, end_dt)]
+    elif type_error:
+        raise TypeError(f"{node} not a node")
+    else:
+        return node
+
+
 class Node(ABC):
 
     def __init__(self, name: str, parents: Iterable["Node"], columns: Iterable[str] = ONE_D_COLS):
@@ -40,67 +54,26 @@ class Node(ABC):
         self.parents = list(parents)
         self.columns = list(columns)
         self.current_dt = None
-        self.prev_dt = None
-        self.prev_result = None
 
     def __repr__(self):
         return f'{self._name}[{", ".join(str(c) for c in self.columns)}]'
 
-    def advance_child(self, node, end_dt) -> pd.DataFrame:
-        if not isinstance(node, Node):
-            return node
-        if node.prev_result is not None and node.prev_dt == self.current_dt and node.current_dt == end_dt:
-            return node.prev_result
-        if node.current_dt is not None and node.current_dt != self.current_dt:
-            node.reset_all()
-            node.advance(self.current_dt)  # Advance to our current time.
-        return node.advance(end_dt)
-
-    def advance(self, end_dt) -> pd.DataFrame:
-        if self.current_dt is not None and end_dt < self.current_dt:
-            raise ValueError("Cannot advance to a time in the past")
-        if end_dt == self.current_dt:
-            return empty_df(columns=self.columns)
-        print(f"Evaluating {self}: {self.current_dt} -> {end_dt}")
-        result = self.evaluate(self.current_dt, end_dt)
-        result = as_valid_result(result)
-        if list(result.columns) != self.columns:
-            raise ValueError(f"Incorrect columns returned: {list(result.columns)} != {self.columns}")
-        self.prev_dt = self.current_dt
-        self.current_dt = end_dt
-        self.prev_result = result
-        return result
+    @abstractmethod
+    def get_required_evaluations(self, start_dt, end_dt):
+        pass
 
     @abstractmethod
-    def evaluate(self, start_dt, end_dt) -> pd.DataFrame:
-        """Evaluates the node over the given date range."""
-
-    def reset(self):
-        """Resets the node"""
-        self.current_dt = None
-        self.prev_dt = None
-        self.prev_result = None
-
-    def hard_reset(self):
-        self.reset()
-
-    def reset_all(self):
-        for n in self.parents:
-            n.reset_all()
-        self.reset()
-
-    def hard_reset_all(self):
-        for n in self.parents:
-            n.hard_reset_all()
-        self.hard_reset()
+    def evaluate(self, start_dt, end_dt, working_data) -> pd.DataFrame:
+        """Evaluates the node over the given date range given working data."""
 
     def graph_start_dt(self) -> pd.Timestamp:
         return min(n.graph_start_dt() for n in self.parents)
 
     def calc(self):
         """Convinient way to evaluate up to the present day"""
-        self.reset_all()
-        return self.advance(pd.Timestamp.now())
+        from tsgraph.evaluation import evaluate_nodes
+        result = evaluate_nodes([self], start_dt=None, end_dt=pd.Timestamp.now())
+        return result[self]
 
 
 class OutputNode(Node):
@@ -110,24 +83,18 @@ class OutputNode(Node):
         self.data = Curve(columns=input_node.columns)
         self._input_node = input_node
 
-    def evaluate(self, start_dt, end_dt) -> pd.DataFrame:
+    def get_required_evaluations(self, start_dt, end_dt):
         if self.current_dt is None or end_dt > self.current_dt:
-            result = self.advance_child(self._input_node, end_dt)
+            return [(self._input_node, (self.current_dt, end_dt))]
+        else:
+            return []
+
+    def evaluate(self, start_dt, end_dt, working_data) -> pd.DataFrame:
+        if self.current_dt is None or end_dt > self.current_dt:
+            result = get_data_for_node(self._input_node, self.current_dt, end_dt, working_data)
             self.data.append(result)
-        if start_dt is None:
-            start_dt = self.graph_start_dt()
-        slice_start = start_dt + EPSILON if start_dt is not None else self.graph_start_dt()
-        return self.data[slice_start:end_dt].as_df()
-
-    def hard_reset(self):
-        super().hard_reset()
-        self.data = Curve(columns=self.columns)
-
-    def reset(self):
-        pass
-
-    def reset_all(self):
-        pass
+            self.current_dt = end_dt
+        return self.data[get_slice(start_dt, end_dt)].as_df()
 
 
 def output_node(node) -> OutputNode:
@@ -210,23 +177,35 @@ class FuncNode(Node):
             raise ValueError("Cannot have no node inputs")
         return parents
 
-    def evaluate(self, start_dt, end_dt) -> pd.DataFrame:
-        if start_dt != self.current_dt:
-            self.reset_all()
-            return self.advance(end_dt)[start_dt:]
+    def get_required_evaluations(self, start_dt, end_dt):
+        # First what evaluation do we require.
+        if self._is_stateful and (self.current_dt is None or start_dt is None or start_dt != self.current_dt):
+            self_eval = (None, end_dt)
+        else:
+            self_eval = (start_dt, end_dt)
+        # Next, we require the parent evaluations over the same range.
+        return [(p, self_eval) for p in self.parents]
 
-        args = [self.advance_child(v, end_dt) for v in self._args]
-        kwargs = {k: self.advance_child(v, end_dt) for k, v in self._kwargs.items()}
+    def evaluate(self, start_dt, end_dt, working_data) -> pd.DataFrame:
+        eval_start_dt = start_dt
+        if self._is_stateful and start_dt != self.current_dt:
+            self.reset()
+            eval_start_dt = None
+
+        args = [get_data_for_node(v, eval_start_dt, end_dt, working_data, type_error=False) for v in self._args]
+        kwargs = {k: get_data_for_node(v, eval_start_dt, end_dt, working_data, type_error=False)
+                  for k, v in self._kwargs.items()}
         if self._is_stateful:
             kwargs['state'] = self._state
             result, state = self._func(*args, **kwargs)
             self._state = state
         else:
             result = self._func(*args, **kwargs)
-        return result
+        self.current_dt = end_dt
+        return result[get_slice(start_dt, end_dt)]
 
     def reset(self):
-        super().reset()
+        self.current_dt = None
         self._state = self._initial_state
 
 
@@ -278,7 +257,10 @@ class DataFrameNode(Node):
             raise ValueError("Cannot use empty dataframe for a node")
         self._df = df
 
-    def evaluate(self, start_dt, end_dt) -> pd.DataFrame:
+    def get_required_evaluations(self, start_dt, end_dt):
+        return []
+
+    def evaluate(self, start_dt, end_dt, working_data) -> pd.DataFrame:
         slice_start = start_dt + EPSILON if start_dt is not None else self.graph_start_dt()
         return self._df[slice_start:end_dt]
 
