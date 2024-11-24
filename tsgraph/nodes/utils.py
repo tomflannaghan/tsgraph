@@ -50,8 +50,8 @@ def join(n1, n2, join_time: pd.Timestamp):
     return pd.concat([n1, n2])
 
 
-def stitch(data_nodes: List[Node], roll_dates: List[pd.Timestamp]):
+def stitch(data_nodes: List[Node], dates: List[pd.Timestamp]):
     result = data_nodes[0]
-    for node, start_dt in zip(data_nodes[1:], roll_dates[:-1]):
+    for node, start_dt in zip(data_nodes[1:], dates[:-1]):
         result = join(result, node, join_time=start_dt)
     return result
