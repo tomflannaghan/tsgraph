@@ -1,6 +1,6 @@
+import importlib
 import inspect
 from abc import ABC, abstractmethod
-from functools import wraps
 from inspect import Parameter
 from itertools import chain
 from typing import Iterable, Callable, List
@@ -35,12 +35,16 @@ def to_series(value):
 
 class Node(ABC):
 
-    def __init__(self, parents: Iterable["Node"], columns: Iterable[str] = ONE_D_COLS):
+    def __init__(self, name: str, parents: Iterable["Node"], columns: Iterable[str] = ONE_D_COLS):
+        self._name = name
         self._parents = list(parents)
         self.columns = list(columns)
         self.current_dt = None
         self.prev_dt = None
         self.prev_result = None
+
+    def __repr__(self):
+        return f'{self._name}[{", ".join(str(c) for c in self.columns)}]'
 
     def advance_child(self, node, end_dt) -> pd.DataFrame:
         if not isinstance(node, Node):
@@ -101,12 +105,9 @@ class Node(ABC):
 class OutputNode(Node):
 
     def __init__(self, input_node: Node):
-        super().__init__([input_node], columns=input_node.columns)
+        super().__init__('output_node', [input_node], columns=input_node.columns)
         self.data = Curve(columns=input_node.columns)
         self._input_node = input_node
-
-    def __repr__(self):
-        return f'output_node({id(self)})'
 
     def evaluate(self, start_dt, end_dt) -> pd.DataFrame:
         if self.current_dt is None or end_dt > self.current_dt:
@@ -132,10 +133,45 @@ def output_node(node) -> OutputNode:
     return OutputNode(node)
 
 
+class FunctionRegistry():
+    def __init__(self):
+        self.registry = {}
+        self.reverse_lookup = {}
+
+    def register(self, func):
+        key = func.__module__, func.__name__
+        if key in self.registry:
+            return
+        if func in self.reverse_lookup:
+            raise ValueError("Same function can't be registered under different names")
+        if func.__name__ == '<lambda>':
+            raise ValueError("Cannot register lambdas.")
+        if func.__module__ == '__main__':
+            raise ValueError("Cannot register functions defined in __main__ script.")
+        self.registry[key] = func
+        self.reverse_lookup[func] = key
+
+    def get_key(self, func):
+        return self.reverse_lookup[func]
+
+    def get_func(self, key):
+        if key in self.registry:
+            return self.registry[key]
+        # If it's not in there, we must try to import the module, which should make it become registered.
+        importlib.import_module(key[0])
+        if key not in self.registry:
+            raise ValueError(f"Function {key[1]} not found by importing {key[0]}")
+        return self.registry[key]
+
+
+_FUNCTION_REGISTRY = FunctionRegistry()
+
+
 class FuncNode(Node):
 
     def __init__(self, func: Callable, *args, columns: Iterable = ONE_D_COLS, **kwargs):
-        super().__init__(parents=self.get_parents(args, kwargs), columns=columns)
+        super().__init__(name=func.__name__, parents=self.get_parents(args, kwargs), columns=columns)
+        _FUNCTION_REGISTRY.register(func)
         self._func = func
         self._args = args
         self._kwargs = kwargs
@@ -151,8 +187,18 @@ class FuncNode(Node):
             self._initial_state = None
         self._state = self._initial_state
 
-    def __repr__(self):
-        return f'{self._func.__name__}({id(self)})'
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        func = state.pop('_func')
+        state['_func_key'] = _FUNCTION_REGISTRY.get_key(func)
+        return state
+
+    def __setstate__(self, state):
+        key = state['_func_key']
+        func = _FUNCTION_REGISTRY.get_func(key)
+        self.__dict__.update(state)
+        del self.__dict__['_func_key']
+        self._func = func
 
     @staticmethod
     def get_parents(args, kwargs):
@@ -181,7 +227,6 @@ class FuncNode(Node):
         self._state = self._initial_state
 
 
-
 class NodeDecorator:
     def __init__(self, func: Callable[..., pd.DataFrame]):
         self.func = func
@@ -201,6 +246,7 @@ class HomogeneousNodeDecorator(NodeDecorator):
     """
     Decorator that requires all input nodes to have the same columns.
     """
+
     def infer_columns(self, parents: List[Node]):
         all_column_specs = list(unique_everseen(n.columns for n in parents))
         if len(all_column_specs) > 1:
@@ -212,11 +258,11 @@ class ScalarNodeDecorator(NodeDecorator):
     """
     A decorator that produces nodes that are 1d with the standard 1d columns.
     """
+
     def infer_columns(self, parents: List[Node]):
         return ONE_D_COLS
 
 
-# Give this a nice and friendly name. This is by far the most common type.
 node = HomogeneousNodeDecorator
 scalar_node = ScalarNodeDecorator
 
@@ -224,13 +270,10 @@ scalar_node = ScalarNodeDecorator
 class DataFrameNode(Node):
 
     def __init__(self, df: pd.DataFrame):
-        super().__init__([], columns=df.columns)
+        super().__init__('df_node', [], columns=df.columns)
         if df.empty:
             raise ValueError("Cannot use empty dataframe for a node")
         self._df = df
-
-    def __repr__(self):
-        return f'df_node({id(self)})'
 
     def evaluate(self, start_dt, end_dt) -> pd.DataFrame:
         slice_start = start_dt + EPSILON if start_dt is not None else self.graph_start_dt()
