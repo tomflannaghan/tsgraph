@@ -89,7 +89,7 @@ aligned_node = AlignedNodeDecorator
 
 
 @aligned_node
-def _pack(values, columns):
+def _pack(*values, columns):
     return pd.DataFrame({col: to_series(v) for col, v in zip(columns, values)}).dropna()
 
 
@@ -97,7 +97,7 @@ def pack(col_to_value: Dict, aligner='left', how='ffill', state=None):
     """
     Forms a multicolumn node with the given columns. Can be nodes or values. All inputs must be 1d.
     """
-    return _pack(values=col_to_value.values(), aligner=aligner, how=how, state=state, columns=list(col_to_value))
+    return _pack(*col_to_value.values(), aligner=aligner, how=how, state=state, columns=list(col_to_value))
 
 
 @scalar_node

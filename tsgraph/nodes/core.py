@@ -186,6 +186,8 @@ class FuncNode(Node):
         else:
             self._initial_state = None
         self._state = self._initial_state
+        if 'columns' in sig.parameters:
+            self._kwargs['columns'] = columns
 
     def __getstate__(self):
         state = self.__dict__.copy()
