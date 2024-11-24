@@ -32,6 +32,11 @@ def mul(*args) -> pd.DataFrame:
     return result.dropna()
 
 
+@aligned_node
+def div(num, denom) -> pd.DataFrame:
+    return (num / denom).dropna()
+
+
 @node
 def cumsum(df, state=None):
     result = df.cumsum()
