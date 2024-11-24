@@ -231,7 +231,7 @@ class NodeDecorator:
     def __init__(self, func: Callable[..., pd.DataFrame]):
         self.func = func
 
-    def __call__(self, *args, columns=None, **kwargs):
+    def __call__(self, *args, columns=None, **kwargs) -> Node:
         if columns is None:
             parents = FuncNode.get_parents(args, kwargs)
             columns = self.infer_columns(parents)

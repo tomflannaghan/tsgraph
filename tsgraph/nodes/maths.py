@@ -1,10 +1,9 @@
 import numpy as np
 import pandas as pd
 from numba import jit
-from pandas import DatetimeIndex
 
-from tsgraph.nodes.core import node, Node, scalar_node
 from tsgraph.nodes.align import aligned_node
+from tsgraph.nodes.core import node, scalar_node
 
 
 @scalar_node
