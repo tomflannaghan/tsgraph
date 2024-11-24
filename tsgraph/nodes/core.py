@@ -61,6 +61,7 @@ class Node(ABC):
             raise ValueError("Cannot advance to a time in the past")
         if end_dt == self.current_dt:
             return empty_df(columns=self.columns)
+        print(f"Evaluating {self}: {self.current_dt} -> {end_dt}")
         result = self.evaluate(self.current_dt, end_dt)
         result = as_valid_result(result)
         if list(result.columns) != self.columns:

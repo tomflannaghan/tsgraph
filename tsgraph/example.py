@@ -57,3 +57,5 @@ pyplot.plot(df['price_unadj'], label='price_unadj')
 pyplot.plot(backadjust, label='backadjust')
 pyplot.legend()
 pyplot.show()
+
+market_data.inc(market='WTI')[0].signal.calc()
