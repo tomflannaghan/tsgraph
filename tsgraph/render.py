@@ -16,7 +16,7 @@ def node_graph(node: Node) -> graphviz.Digraph:
 
     def connect_edges(dot, node):
         gnode = get_gnode(dot, node)
-        for p in node._parents:
+        for p in node.parents:
             connect_edges(dot, p)
             dot.edge(get_gnode(dot, p), gnode)
 

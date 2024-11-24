@@ -37,7 +37,7 @@ class Node(ABC):
 
     def __init__(self, name: str, parents: Iterable["Node"], columns: Iterable[str] = ONE_D_COLS):
         self._name = name
-        self._parents = list(parents)
+        self.parents = list(parents)
         self.columns = list(columns)
         self.current_dt = None
         self.prev_dt = None
@@ -84,17 +84,17 @@ class Node(ABC):
         self.reset()
 
     def reset_all(self):
-        for n in self._parents:
+        for n in self.parents:
             n.reset_all()
         self.reset()
 
     def hard_reset_all(self):
-        for n in self._parents:
+        for n in self.parents:
             n.hard_reset_all()
         self.hard_reset()
 
     def graph_start_dt(self) -> pd.Timestamp:
-        return min(n.graph_start_dt() for n in self._parents)
+        return min(n.graph_start_dt() for n in self.parents)
 
     def calc(self):
         """Convinient way to evaluate up to the present day"""
