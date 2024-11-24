@@ -3,7 +3,7 @@ from typing import Dict
 
 import pandas as pd
 
-from tsgraph.nodes.core import FuncNode, node, Node, scalar_node, to_series
+from tsgraph.nodes.core import FuncNode, node, Node, scalar_node, to_series, NodeDecorator, HomogeneousNodeDecorator
 
 
 @scalar_node
@@ -60,12 +60,9 @@ def align(node: Node, index_node: Node, how='ffill', state=None):
         raise ValueError(f"Invalid how parameter {how}")
 
 
-def aligned_node(func):
-    """
-    A decorator that aligns all the arguments to a function. Requires all nodes to be positional arguments, not kwargs.
-    """
-    @wraps(func)
-    def wrapped(*args, aligner='left', how='ffill', state=None, **kwargs):
+class AlignedNodeDecorator(HomogeneousNodeDecorator):
+
+    def __call__(self, *args, columns=None, aligner='left', how='ffill', state=None,  **kwargs):
         nodes = [n for n in args if isinstance(n, Node)]
         hows = how if isinstance(how, list) else [how] * len(nodes)
         states = state if isinstance(state, list) else [state] * len(nodes)
@@ -90,9 +87,10 @@ def aligned_node(func):
             else:
                 aligned_args.append(v)
 
-        return node(func)(*aligned_args, **kwargs)
+        return super().__call__(*aligned_args, columns=columns, **kwargs)
 
-    return wrapped
+
+aligned_node = AlignedNodeDecorator
 
 
 def pack(col_to_value: Dict, aligner='left', how='ffill', state=None):

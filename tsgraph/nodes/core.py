@@ -3,9 +3,10 @@ from abc import ABC, abstractmethod
 from functools import wraps
 from inspect import Parameter
 from itertools import chain
-from typing import Iterable, Callable
+from typing import Iterable, Callable, List
 
 import pandas as pd
+from more_itertools.recipes import unique_everseen
 
 from tsgraph.curve import Curve, empty_df
 
@@ -180,41 +181,44 @@ class FuncNode(Node):
         self._state = self._initial_state
 
 
-def node(func: Callable[..., pd.DataFrame]) -> Callable[..., FuncNode]:
-    """
-    A decorator for constructing function nodes. It adds a columns argument. If specified, defines the
-    output columns. Otherwise, we require that all node inputs have either the same set of columns
-    or are 1d default columns. It then assumes the output column set matches that.
-    """
 
-    @wraps(func)
-    def wrapped(*args, columns=None, **kwargs):
-        parents = FuncNode.get_parents(args, kwargs)
+class NodeDecorator:
+    def __init__(self, func: Callable[..., pd.DataFrame]):
+        self.func = func
+
+    def __call__(self, *args, columns=None, **kwargs):
         if columns is None:
-            columns = ONE_D_COLS
-            for n in parents:
-                if n.columns != ONE_D_COLS:
-                    if columns == ONE_D_COLS:
-                        columns = n.columns
-                    elif columns != n.columns:
-                        raise ValueError("Different columns found in input nodes. Can't infer column type.")
+            parents = FuncNode.get_parents(args, kwargs)
+            columns = self.infer_columns(parents)
+        return FuncNode(self.func, *args, columns=columns, **kwargs)
 
-        return FuncNode(func, *args, columns=columns, **kwargs)
-
-    return wrapped
+    @abstractmethod
+    def infer_columns(self, parents: List[Node]):
+        """The strategy this decorator uses to infer the columns from the arguments given to the function"""
 
 
-def scalar_node(func: Callable[..., pd.DataFrame]) -> Callable[..., FuncNode]:
+class HomogeneousNodeDecorator(NodeDecorator):
     """
-    A decorator for constructing function nodes that return 1 dimensional results irrespective of the columns
-    of the input.
+    Decorator that requires all input nodes to have the same columns.
     """
+    def infer_columns(self, parents: List[Node]):
+        all_column_specs = list(unique_everseen(n.columns for n in parents))
+        if len(all_column_specs) > 1:
+            raise ValueError(f"Different columns found in input nodes - {all_column_specs}")
+        return all_column_specs[0]
 
-    @wraps(func)
-    def wrapped(*args, **kwargs):
-        return FuncNode(func, *args, columns=ONE_D_COLS, **kwargs)
 
-    return wrapped
+class ScalarNodeDecorator(NodeDecorator):
+    """
+    A decorator that produces nodes that are 1d with the standard 1d columns.
+    """
+    def infer_columns(self, parents: List[Node]):
+        return ONE_D_COLS
+
+
+# Give this a nice and friendly name. This is by far the most common type.
+node = HomogeneousNodeDecorator
+scalar_node = ScalarNodeDecorator
 
 
 class DataFrameNode(Node):
