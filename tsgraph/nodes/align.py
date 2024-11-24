@@ -1,9 +1,8 @@
-from functools import wraps
 from typing import Dict
 
 import pandas as pd
 
-from tsgraph.nodes.core import FuncNode, node, Node, scalar_node, to_series, NodeDecorator, HomogeneousNodeDecorator
+from tsgraph.nodes.core import FuncNode, Node, scalar_node, to_series, HomogeneousNodeDecorator
 
 
 @scalar_node
