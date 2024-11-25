@@ -203,7 +203,7 @@ class FuncNode(Node):
         else:
             result = self._func(*args, **kwargs)
         self._current_dt = end_dt
-        return result[get_slice(start_dt, end_dt)]
+        return as_valid_result(result.loc[get_slice(start_dt, end_dt)])
 
     def reset(self):
         self._current_dt = None
