@@ -37,7 +37,6 @@ def test_pickle():
     # Diff is a fairly complex set of nodes so a good test case.
     n = diff(df_node(timeseries([1.0, 2, 4, 7, 11, 16, 32, 55])), 2)
     expected = n.calc()
-    n.reset_all()
     # Partial advance, so we can test pickling of state
     pd.testing.assert_frame_equal(expected.iloc[:4], n.advance(expected.index[3]))
     # Get a version by pickling and loading
