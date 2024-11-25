@@ -53,7 +53,6 @@ class Node(ABC):
         self._name = name
         self.parents = list(parents)
         self.columns = list(columns)
-        self.current_dt = None
 
     def __repr__(self):
         return f'{self._name}[{", ".join(str(c) for c in self.columns)}]'
@@ -82,18 +81,19 @@ class OutputNode(Node):
         super().__init__('output_node', [input_node], columns=input_node.columns)
         self.data = Curve(columns=input_node.columns)
         self._input_node = input_node
+        self._current_dt = None
 
     def get_required_evaluations(self, start_dt, end_dt):
-        if self.current_dt is None or end_dt > self.current_dt:
-            return [(self._input_node, (self.current_dt, end_dt))]
+        if self._current_dt is None or end_dt > self._current_dt:
+            return [(self._input_node, (self._current_dt, end_dt))]
         else:
             return []
 
     def evaluate(self, start_dt, end_dt, working_data) -> pd.DataFrame:
-        if self.current_dt is None or end_dt > self.current_dt:
-            result = get_data_for_node(self._input_node, self.current_dt, end_dt, working_data)
+        if self._current_dt is None or end_dt > self._current_dt:
+            result = get_data_for_node(self._input_node, self._current_dt, end_dt, working_data)
             self.data.append(result)
-            self.current_dt = end_dt
+            self._current_dt = end_dt
         return self.data[get_slice(start_dt, end_dt)].as_df()
 
 
@@ -156,6 +156,7 @@ class FuncNode(Node):
         self._state = self._initial_state
         if 'columns' in sig.parameters:
             self._kwargs['columns'] = columns
+        self._current_dt = None
 
     def __getstate__(self):
         state = self.__dict__.copy()
@@ -179,7 +180,7 @@ class FuncNode(Node):
 
     def get_required_evaluations(self, start_dt, end_dt):
         # First what evaluation do we require.
-        if self._is_stateful and (self.current_dt is None or start_dt is None or start_dt != self.current_dt):
+        if self._is_stateful and (self._current_dt is None or start_dt is None or start_dt != self._current_dt):
             self_eval = (None, end_dt)
         else:
             self_eval = (start_dt, end_dt)
@@ -188,7 +189,7 @@ class FuncNode(Node):
 
     def evaluate(self, start_dt, end_dt, working_data) -> pd.DataFrame:
         eval_start_dt = start_dt
-        if self._is_stateful and start_dt != self.current_dt:
+        if self._is_stateful and start_dt != self._current_dt:
             self.reset()
             eval_start_dt = None
 
@@ -201,11 +202,11 @@ class FuncNode(Node):
             self._state = state
         else:
             result = self._func(*args, **kwargs)
-        self.current_dt = end_dt
+        self._current_dt = end_dt
         return result[get_slice(start_dt, end_dt)]
 
     def reset(self):
-        self.current_dt = None
+        self._current_dt = None
         self._state = self._initial_state
 
 
