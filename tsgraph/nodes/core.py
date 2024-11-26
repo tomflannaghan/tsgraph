@@ -7,8 +7,7 @@ from typing import Iterable, Callable, List
 
 import pandas as pd
 from more_itertools.recipes import unique_everseen
-
-from tsgraph.curve import Curve, empty_df
+from pandas import DatetimeIndex
 
 ONE_D_COL = 0
 ONE_D_COLS = (ONE_D_COL,)
@@ -79,7 +78,7 @@ class OutputNode(Node):
 
     def __init__(self, input_node: Node):
         super().__init__('output_node', [input_node], columns=input_node.columns)
-        self.data = Curve(columns=input_node.columns)
+        self.data = []
         self._input_node = input_node
         self._current_dt = None
 
@@ -90,11 +89,18 @@ class OutputNode(Node):
             return []
 
     def evaluate(self, start_dt, end_dt, working_data) -> pd.DataFrame:
+        exact_range = False
         if self._current_dt is None or end_dt > self._current_dt:
             result = get_data_for_node(self._input_node, self._current_dt, end_dt, working_data)
             self.data.append(result)
+            exact_range = start_dt == self._current_dt
             self._current_dt = end_dt
-        return self.data[get_slice(start_dt, end_dt)].as_df()
+        return result if exact_range else self.as_df()[get_slice(start_dt, end_dt)]
+
+    def as_df(self):
+        if len(self.data) != 1:
+            self.data = [pd.concat(self.data)]
+        return self.data[0]
 
 
 def output_node(node) -> OutputNode:
@@ -271,3 +277,7 @@ class DataFrameNode(Node):
 
 def df_node(df):
     return DataFrameNode(as_valid_result(df))
+
+
+def empty_df(columns):
+    return pd.DataFrame([], index=DatetimeIndex([]), columns=columns)
