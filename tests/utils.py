@@ -14,8 +14,10 @@ def calc_check_consistency(node, max_days=200):
     start = node.graph_start_dt()
     # batched eval
     segments = []
+    prev = None
     for date in pd.date_range(start, start + pd.offsets.Day(max_days), freq='3D'):
-        segments.append(node.advance(date))
+        segments.append(node[prev:date])
+        prev = date
     # Check it was a sufficiently long evaluation, otherwise could be meaningless.
     assert len(segments) > 1
     result_chunks = pd.concat(segments)

@@ -69,8 +69,14 @@ class Node(ABC):
 
     def calc(self):
         """Convinient way to evaluate up to the present day"""
+        return self[:]
+
+    def __getitem__(self, item):
+        if not isinstance(item, slice):
+            raise ValueError("Must pass a slice.")
         from tsgraph.evaluation import evaluate_nodes
-        result = evaluate_nodes([self], start_dt=None, end_dt=pd.Timestamp.now())
+        end_dt = pd.Timestamp.now() if item.stop is None else item.stop
+        result = evaluate_nodes([self], start_dt=item.start, end_dt=end_dt)
         return result[self]
 
 
