@@ -49,12 +49,12 @@ def get_data_for_node(node, start_dt, end_dt, working_data, type_error=True):
 class Node(ABC):
 
     def __init__(self, name: str, parents: Iterable["Node"], columns: Iterable[str] = ONE_D_COLS):
-        self._name = name
+        self.name = name
         self.parents = list(parents)
         self.columns = list(columns)
 
     def __repr__(self):
-        return f'{self._name}[{", ".join(str(c) for c in self.columns)}]'
+        return f'{self.name}[{", ".join(str(c) for c in self.columns)}]'
 
     @abstractmethod
     def get_required_evaluations(self, start_dt, end_dt):
