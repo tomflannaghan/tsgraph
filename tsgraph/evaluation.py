@@ -1,24 +1,5 @@
 from collections import defaultdict
 from graphlib import TopologicalSorter
-from typing import List, Dict
-
-from tsgraph.nodes.core import Node
-
-
-def nodes_to_dict(nodes) -> Dict[Node, List[Node]]:
-    """Traverses the graph, returning a dict of node -> list of parents."""
-    graph = {}
-
-    def process_node(node):
-        if node not in graph:
-            graph[node] = node.parents
-            for n in node.parents:
-                process_node(n)
-
-    for node in nodes:
-        process_node(node)
-
-    return graph
 
 
 def expand_range(old_range, new_range):
